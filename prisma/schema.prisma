@@ -1,0 +1,82 @@
+generator client { provider = "prisma-client-js" }
+datasource db { provider = "postgresql" url = env("DATABASE_URL") }
+
+model User {
+  id String @id @default(cuid())
+  telegramId String? @unique
+  displayName String?
+  createdAt DateTime @default(now())
+  kaijukin Kaijukin?
+  kinLedger KinLedger[]
+}
+
+model Kaijukin {
+  id String @id @default(cuid())
+  userId String @unique
+  user User @relation(fields:[userId], references:[id], onDelete:Cascade)
+  name String @default("Moki")
+  birthDate DateTime?
+  incubationCheckins Int @default(1)
+  hatched Boolean @default(false)
+  level Int @default(1)
+  xp Int @default(0)
+  bond Float @default(0)
+  energy Int @default(100)
+  satiety Int @default(100)
+  mood Int @default(70)
+  traits TraitState?
+  memories Memory[]
+  interactions Interaction[]
+  createdAt DateTime @default(now())
+}
+
+model TraitState {
+  id String @id @default(cuid())
+  kaijukinId String @unique
+  kaijukin Kaijukin @relation(fields:[kaijukinId], references:[id], onDelete:Cascade)
+  curiosity Float @default(50)
+  affection Float @default(50)
+  boldness Float @default(50)
+  playfulness Float @default(50)
+  patience Float @default(50)
+  empathy Float @default(50)
+  independence Float @default(50)
+  mischief Float @default(50)
+  discipline Float @default(50)
+  updatedAt DateTime @updatedAt
+}
+
+model Memory {
+  id String @id @default(cuid())
+  kaijukinId String
+  kaijukin Kaijukin @relation(fields:[kaijukinId], references:[id], onDelete:Cascade)
+  kind String
+  summary String
+  importance Float @default(.5)
+  emotionalWeight Float @default(0)
+  confidence Float @default(1)
+  accessCount Int @default(0)
+  createdAt DateTime @default(now())
+}
+
+model Interaction {
+  id String @id @default(cuid())
+  kaijukinId String
+  kaijukin Kaijukin @relation(fields:[kaijukinId], references:[id], onDelete:Cascade)
+  type String
+  quality String @default("MEANINGFUL")
+  xpAwarded Int @default(0)
+  kinAwarded Int @default(0)
+  createdAt DateTime @default(now())
+}
+
+model KinLedger {
+  id String @id @default(cuid())
+  userId String
+  user User @relation(fields:[userId], references:[id], onDelete:Cascade)
+  amount Int
+  reason String
+  sourceId String?
+  balanceAfter Int
+  createdAt DateTime @default(now())
+}
