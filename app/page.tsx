@@ -1,104 +1,22 @@
 'use client';
-
-import { useEffect, useState } from 'react';
-
-type Stage = 'egg' | 'hatch' | 'home';
-type Action = 'talk' | 'feed' | 'play' | 'explore';
-
-const actions: { id: Action; label: string; glyph: string }[] = [
-  { id: 'talk', label: 'TALK', glyph: '◌' },
-  { id: 'feed', label: 'FEED', glyph: '◇' },
-  { id: 'play', label: 'PLAY', glyph: '○' },
-  { id: 'explore', label: 'EXPLORE', glyph: '⌁' },
-];
-
-export default function Home() {
-  const [stage, setStage] = useState<Stage>('egg');
-  const [checkin, setCheckin] = useState(1);
-  const [xp, setXp] = useState(0);
-  const [kin, setKin] = useState(100);
-  const [level, setLevel] = useState(1);
-  const [mood, setMood] = useState('curious');
-  const [message, setMessage] = useState('Something is waiting.');
-  const [panel, setPanel] = useState<Action | null>(null);
-
-  useEffect(() => {
-    const saved = localStorage.getItem('kaijukin-v0');
-    if (saved) {
-      try {
-        const s = JSON.parse(saved);
-        setStage(s.stage ?? 'egg'); setCheckin(s.checkin ?? 1); setXp(s.xp ?? 0); setKin(s.kin ?? 100); setLevel(s.level ?? 1);
-      } catch {}
-    }
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem('kaijukin-v0', JSON.stringify({ stage, checkin, xp, kin, level }));
-  }, [stage, checkin, xp, kin, level]);
-
-  function incubate() {
-    if (checkin < 4) {
-      setKin(v => v + 125);
-      setCheckin(v => v + 1);
-      setMessage(checkin === 1 ? 'It moved.' : checkin === 2 ? 'Something answered from inside.' : 'The shell is ready.');
-    } else setStage('hatch');
-  }
-
-  function enterHome() { setStage('home'); setKin(v => v + 500); setMessage('Moki is watching you.'); }
-
-  function interact(id: Action) {
-    setPanel(id);
-    const rewards = { talk: [15,20], feed:[10,10], play:[20,20], explore:[25,35] } as const;
-    const [dx, dk] = rewards[id];
-    setXp(v => {
-      const n = v + dx;
-      if (n >= level * 100) { setLevel(l => l + 1); return 0; }
-      return n;
-    });
-    setKin(v => v + dk);
-    const copy = {
-      talk: 'Moki tilts its head. “...you came back.”',
-      feed: 'Moki devours the snack, then checks for another.',
-      play: 'The ball is now the most important object in existence.',
-      explore: 'Moki disappears into the cavern and returns with a strange stone.'
-    };
-    setMessage(copy[id]);
-    setMood(id === 'play' ? 'happy' : id === 'feed' ? 'content' : 'curious');
-  }
-
-  if (stage === 'egg') return <main className="incubation">
-    <Brand />
-    <section className="eggScene">
-      <div className={`egg egg${checkin}`}><span /></div>
-      <p className="eyebrow">INCUBATION · CHECK-IN {checkin}/4</p>
-      <h1>{checkin === 1 ? 'Something is inside.' : checkin === 4 ? 'It is ready.' : message}</h1>
-      <p className="muted">No personality yet. Just presence.</p>
-      <button className="primary" onClick={incubate}>{checkin === 1 ? 'WARM THE EGG' : checkin === 2 ? 'TOUCH' : checkin === 3 ? 'CALL' : 'HATCH'}</button>
-      <button className="dev" onClick={() => setCheckin(4)}>DEV · SKIP TO HATCH</button>
-    </section>
-  </main>;
-
-  if (stage === 'hatch') return <main className="hatch">
-    <div className="shell">◜　◝</div>
-    <Moki mood="newborn" />
-    <p className="eyebrow">DAY ONE</p><h1>It needs a name.</h1>
-    <input defaultValue="Moki" aria-label="Kaijukin name" />
-    <button className="primary" onClick={enterHome}>MEET MOKI</button>
-  </main>;
-
-  return <main className="game">
-    <header><div><strong>MOKI</strong><small> LV. {level}</small><div className="xp"><i style={{width:`${Math.min(100,xp)}%`}} /></div></div><div className="currency">◆ {kin.toLocaleString()} KIN</div></header>
-    <section className="cavern">
-      <div className="light"/><div className="waterfall"/><div className="fire">✦</div><div className="ball"/>
-      <Moki mood={mood} />
-      <div className="speech">{message}</div>
-    </section>
-    <section className="actions">{actions.map(a => <button key={a.id} onClick={() => interact(a.id)}><b>{a.glyph}</b><span>{a.label}</span></button>)}</section>
-    <nav>{['HOME','JOURNAL','BAG','SHOP','FRIENDS'].map((x,i)=><button className={i===0?'active':''} key={x}>{x}</button>)}</nav>
-    {panel && <div className="toast">+ XP · + KIN <button onClick={()=>setPanel(null)}>×</button></div>}
-  </main>;
+import {FormEvent,useEffect,useState} from 'react';
+type Stage='egg'|'hatch'|'home'; type Screen='home'|'chat'|'feed'|'play';
+const foods=[['Cave Berries','●●●',12],['Glow Fruit','✦',8],['Riverfish','><>',5],['Moss Treat','♣',10],['Crystal Nut','◆',6],['Steam Bun','◉',3]] as const;
+export default function Home(){
+ const[stage,setStage]=useState<Stage>('egg'),[screen,setScreen]=useState<Screen>('home'),[checkin,setCheckin]=useState(1),[xp,setXp]=useState(0),[kin,setKin]=useState(100),[level,setLevel]=useState(1),[mood,setMood]=useState('curious'),[message,setMessage]=useState('Moki is watching you.'),[chat,setChat]=useState<{who:'you'|'moki';text:string}[]>([{who:'moki',text:'Moo? ...you came back.'}]),[text,setText]=useState(''),[target,setTarget]=useState(0);
+ useEffect(()=>{try{const s=JSON.parse(localStorage.getItem('kaijukin-v1')||'{}');if(s.stage)setStage(s.stage);if(s.checkin)setCheckin(s.checkin);if(s.xp!=null)setXp(s.xp);if(s.kin!=null)setKin(s.kin);if(s.level)setLevel(s.level)}catch{}},[]);
+ useEffect(()=>localStorage.setItem('kaijukin-v1',JSON.stringify({stage,checkin,xp,kin,level})),[stage,checkin,xp,kin,level]);
+ const reward=(dx:number,dk:number)=>{setXp(v=>{let n=v+dx;if(n>=level*100){setLevel(l=>l+1);return n-level*100}return n});setKin(v=>v+dk)};
+ const incubate=()=>checkin<4?(setCheckin(v=>v+1),setKin(v=>v+25)):setStage('hatch');
+ const send=(e:FormEvent)=>{e.preventDefault();if(!text.trim())return;const q=text.trim();setChat(c=>[...c,{who:'you',text:q}]);setText('');setTimeout(()=>setChat(c=>[...c,{who:'moki',text:q.toLowerCase().includes('hello')?'Moo! You sound happy.':'Moki chirps, then nudges closer. “Again?”'}]),350);reward(15,10)};
+ const feed=(name:string)=>{setMood('happy');setMessage(`Moki devours the ${name.toLowerCase()} and wiggles happily.`);reward(10,8);setScreen('home')};
+ if(stage==='egg')return <main className="incubation"><Brand/><section className="eggScene"><div className={`egg egg${checkin}`}><div className="scales"/><i className="crack c1"/><i className="crack c2"/><i className="crack c3"/></div><p className="eyebrow">INCUBATION · CHECK-IN {checkin}/4</p><h1>{checkin===4?'It is ready.':'Something is inside.'}</h1><p className="muted">No personality yet. Just presence.</p><button className="primary" onClick={incubate}>{checkin===4?'HATCH':checkin===1?'WARM THE EGG':checkin===2?'LISTEN':'STABILIZE'}</button><button className="dev" onClick={()=>setCheckin(4)}>DEV · SKIP TO HATCH</button></section></main>;
+ if(stage==='hatch')return <main className="hatch"><div className="shellPieces">◇　◇</div><Moki mood="newborn"/><p className="eyebrow">DAY ONE</p><h1>It needs a name.</h1><input defaultValue="Moki"/><button className="primary" onClick={()=>{setStage('home');setKin(v=>v+500)}}>MEET MOKI</button></main>;
+ if(screen==='chat')return <main className="subscreen"><Top title="Chat with Moki" back={()=>setScreen('home')}/><div className="chatlog">{chat.map((m,i)=><div key={i} className={`bubble ${m.who}`}>{m.text}</div>)}</div><form className="composer" onSubmit={send}><input value={text} onChange={e=>setText(e.target.value)} placeholder="Say something to Moki…"/><button>➤</button></form></main>;
+ if(screen==='feed')return <main className="subscreen"><Top title="Feed Moki" back={()=>setScreen('home')}/><div className="tabs">FOOD <span>TREATS</span><span>SPECIAL</span></div><div className="foodgrid">{foods.map(([n,g,c])=><button key={n} onClick={()=>feed(n)}><b>{g}</b><strong>{n}</strong><small>x{c}</small></button>)}</div><p className="hint">Choose something from your inventory.</p></main>;
+ if(screen==='play')return <main className="subscreen play"><Top title="Play" back={()=>setScreen('home')}/><div className="playcave"><div className="waterfall"/><button className={`toy t${target}`} onClick={()=>{setTarget(v=>(v+1)%4);setMood('happy');reward(8,4)}}>◉</button><div className={`walker w${target}`}><Moki mood={mood}/></div><p>Tap the ball. Moki will chase it.</p></div></main>;
+ return <main className="game"><header><div><strong>MOKI</strong><small> LV. {level}</small><div className="xp"><i style={{width:`${Math.min(100,xp)}%`}}/></div></div><div className="currency">◆ {kin.toLocaleString()} KIN</div></header><section className="cavern"><div className="light"/><div className="waterfall"/><div className="fire">✦</div><div className="ball"/><Moki mood={mood}/><div className="speech">{message}</div></section><section className="actions"><button onClick={()=>setScreen('chat')}><b>◌</b><span>CHAT</span></button><button onClick={()=>setScreen('feed')}><b>◇</b><span>FEED</span></button><button onClick={()=>setScreen('play')}><b>○</b><span>PLAY</span></button><button onClick={()=>{setMessage('Moki found a strange stone near the water.');reward(25,15)}}><b>⌁</b><span>EXPLORE</span></button></section><nav>{['CAVE','INVENTORY','QUESTS','LORE'].map((x,i)=><button className={i===0?'active':''} key={x}>{x}</button>)}</nav></main>
 }
-
-function Brand(){ return <div className="brand"><MokiIcon/><span>KAIJUKIN</span></div> }
-function MokiIcon(){ return <svg viewBox="0 0 100 80" aria-hidden><path d="M18 65C7 62 7 45 19 42c1-19 12-31 27-34 10-8 27-9 35-4 7 5 3 21-5 31 8 3 13 10 13 19 9 2 10 17-1 20-12 3-19-2-22-5-9 6-23 7-34 1-4 4-8 5-14 5Z"/><ellipse cx="39" cy="46" rx="5" ry="10"/><ellipse cx="61" cy="46" rx="5" ry="10"/></svg> }
-function Moki({mood}:{mood:string}) { return <div className={`moki ${mood}`}><div className="crest"/><div className="eye left"/><div className="eye right"/><div className="mouth"/><div className="paw p1"/><div className="paw p2"/><div className="paw p3"/><div className="paw p4"/></div> }
+function Top({title,back}:{title:string;back:()=>void}){return <header className="subhead"><button onClick={back}>‹</button><strong>{title}</strong><span/></header>}
+function Brand(){return <div className="brand"><MokiIcon/><span>KAIJUKIN</span></div>};function MokiIcon(){return <svg viewBox="0 0 100 80"><path d="M18 65C7 62 7 45 19 42c1-19 12-31 27-34 10-8 27-9 35-4 7 5 3 21-5 31 8 3 13 10 13 19 9 2 10 17-1 20-12 3-19-2-22-5-9 6-23 7-34 1-4 4-8 5-14 5Z"/><ellipse cx="39" cy="46" rx="5" ry="10"/><ellipse cx="61" cy="46" rx="5" ry="10"/></svg>}
+function Moki({mood}:{mood:string}){return <div className={`moki ${mood}`}><div className="crest"/><div className="eye left"/><div className="eye right"/><div className="mouth"/><div className="paw p1"/><div className="paw p2"/><div className="paw p3"/><div className="paw p4"/></div>}
