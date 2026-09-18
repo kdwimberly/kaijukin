@@ -1,17 +1,80 @@
 'use client';
-import {FormEvent,useEffect,useState} from 'react';
+import {useEffect,useState} from 'react';
 import dynamic from 'next/dynamic';
+
 const KaijukinScene=dynamic(()=>import('./components/KaijukinScene'),{ssr:false});
-type Stage='egg'|'hatch'|'home';type View='home'|'chat'|'feed'|'play';
-const food=[{n:'Moon Berries',icon:'✦',qty:12,t:'Sweet · +Mood'},{n:'Glow Fruit',icon:'◒',qty:8,t:'Fresh · +Bond'},{n:'Riverfish',icon:'◇',qty:5,t:'Savory · +Energy'},{n:'Moss Cake',icon:'♧',qty:10,t:'Soft · +Mood'}];
-export default function Home(){const[stage,setStage]=useState<Stage>('egg'),[view,setView]=useState<View>('home'),[day,setDay]=useState(1),[xp,setXp]=useState(32),[kin,setKin]=useState(625),[mood,setMood]=useState('curious'),[note,setNote]=useState('Moki notices you watching.'),[chat,setChat]=useState<{w:'m'|'u';t:string}[]>([{w:'m',t:'Moo? You came back.'}]),[text,setText]=useState(''),[name,setName]=useState('Moki'),[ball,setBall]=useState(0);
-useEffect(()=>{try{const s=JSON.parse(localStorage.getItem('kaijukin-3d')||'{}');if(s.stage)setStage(s.stage);if(s.day)setDay(s.day);if(s.name)setName(s.name)}catch{}},[]);useEffect(()=>localStorage.setItem('kaijukin-3d',JSON.stringify({stage,day,name})),[stage,day,name]);
-const earn=(a=8,b=4)=>{setXp(v=>Math.min(100,v+a));setKin(v=>v+b)};const send=(e:FormEvent)=>{e.preventDefault();if(!text.trim())return;const q=text.trim();setChat(c=>[...c,{w:'u',t:q}]);setText('');setTimeout(()=>setChat(c=>[...c,{w:'m',t:'Moki gives a tiny chirp and leans closer.'}]),250);earn(5,2)};
-if(stage==='egg')return <main className="screen incubation"><Brand/><div className="eggWorld"><div className="halo"/><div className={`silverEgg d${day}`}><div className="scaleSkin"/><i className="shine"/><i className="crack a"/><i className="crack b"/><i className="crack c"/></div><div className="eggShadow"/></div><div className="incopy"><span className="kicker">INCUBATION · {day} OF 4</span><h1>{day===4?'Something is waking.':'A life is forming.'}</h1><p>{day===4?'The fractures glow from within.':'Keep it warm. Something is listening.'}</p><button className="goldButton" onClick={()=>day<4?setDay(v=>v+1):setStage('hatch')}>{day===4?'HATCH':'CHECK IN'}</button><button className="ghost" onClick={()=>setDay(4)}>DEV · ADVANCE</button></div></main>;
-if(stage==='hatch')return <main className="screen hatch cleanHatch"><Brand/><div className="birthCreature"><KaijukinScene mode="portrait"/></div><section className="nameCard"><span className="kicker">BIRTH · DAY ONE</span><h1>Hello, little one.</h1><p>Your Kaijukin needs its first name.</p><label>NAME<input value={name} maxLength={16} onChange={e=>setName(e.target.value)}/></label><button disabled={!name.trim()} className="goldButton" onClick={()=>setStage('home')}>ENTER THE NEST</button></section></main>;
-if(view==='chat')return <main className="screen panelScreen"><PanelHead title={name.toUpperCase()} sub="Bond conversation" back={()=>setView('home')}/><div className="miniMoki"><KaijukinScene mode="portrait"/></div><div className="chatlog">{chat.map((x,i)=><div className={`bubble ${x.w}`} key={i}>{x.t}</div>)}</div><form className="composer" onSubmit={send}><input value={text} onChange={e=>setText(e.target.value)} placeholder={`Talk to ${name}…`}/><button>↑</button></form></main>;
-if(view==='feed')return <main className="screen panelScreen"><PanelHead title="PANTRY" sub={`Choose something for ${name}`} back={()=>setView('home')}/><div className="inventoryMeta"><span>FOOD</span><small>4 TYPES · 35 ITEMS</small></div><div className="foodgrid">{food.map(f=><button key={f.n} onClick={()=>{setMood('happy');setNote(`${name} loved the ${f.n.toLowerCase()}.`);earn(10,5);setView('home')}}><div className="foodArt">{f.icon}</div><div><strong>{f.n}</strong><small>{f.t}</small></div><em>×{f.qty}</em></button>)}</div></main>;
-if(view==='play')return <main className="screen playScreen"><PanelHead title="PLAY" sub="Tap an object" back={()=>setView('home')}/><KaijukinScene/><button className={`gameBall ball${ball}`} onClick={()=>{setBall(v=>(v+1)%4);earn()}} aria-label="Move ball"/><div className="playHint"><b>◉</b><span>Tap the ball</span><small>{name} learns through play</small></div></main>;
-return <main className="screen game"><header className="hud"><div className="identity"><MokiIcon/><div><strong>{name.toUpperCase()}</strong><small>GROWTH I · LV 1</small></div></div><div className="kin">◆ <b>{kin}</b><small>KIN</small></div></header><section className="world"><KaijukinScene/><div className="status"><span className="moodDot"/> {mood.toUpperCase()}</div><div className="thought">{note}</div></section><section className="actionDock"><button onClick={()=>setView('chat')}><i>◌</i><b>CHAT</b><small>Bond</small></button><button onClick={()=>setView('feed')}><i>◇</i><b>FEED</b><small>Pantry</small></button><button onClick={()=>setView('play')}><i>◉</i><b>PLAY</b><small>Interact</small></button><button onClick={()=>{setNote(`${name} discovered a smooth violet stone.`);earn(12,8)}}><i>⌁</i><b>EXPLORE</b><small>Discover</small></button></section><footer><button className="on">⌂<span>NEST</span></button><button>▱<span>JOURNAL</span></button><div className="levelRing"><b>{xp}</b><small>XP</small></div><button>◇<span>COLLECTION</span></button><button>☷<span>MORE</span></button></footer></main>}
-function PanelHead({title,sub,back}:{title:string;sub:string;back:()=>void}){return <header className="panelHead"><button onClick={back}>‹</button><div><strong>{title}</strong><small>{sub}</small></div><span>•••</span></header>}
-function Brand(){return <div className="brand"><MokiIcon/><b>KAIJUKIN</b></div>};function MokiIcon(){return <svg viewBox="0 0 100 80"><path d="M18 65C7 62 7 45 19 42c1-19 12-31 27-34 10-8 27-9 35-4 7 5 3 21-5 31 8 3 13 10 13 19 9 2 10 17-1 20-12 3-19-2-22-5-9 6-23 7-34 1-4 4-8 5-14 5Z"/><ellipse cx="39" cy="46" rx="5" ry="10"/><ellipse cx="61" cy="46" rx="5" ry="10"/></svg>}
+type Stage='egg'|'hatch'|'name'|'home';
+
+export default function Home(){
+ const [stage,setStage]=useState<Stage>('egg');
+ const [day,setDay]=useState(1);
+ const [name,setName]=useState('Moki');
+ const [kin,setKin]=useState(625);
+ const [xp,setXp]=useState(32);
+ const [hydrated,setHydrated]=useState(false);
+
+ useEffect(()=>{try{const s=JSON.parse(localStorage.getItem('kaijukin-visual-v1')||'{}');if(s.stage)setStage(s.stage);if(s.day)setDay(s.day);if(s.name)setName(s.name)}catch{}setHydrated(true)},[]);
+ useEffect(()=>{if(hydrated)localStorage.setItem('kaijukin-visual-v1',JSON.stringify({stage,day,name}))},[hydrated,stage,day,name]);
+
+ if(stage==='egg') return <main className="screen cinematic incubation3d">
+   <Brand/>
+   <section className="hero3d eggHero"><KaijukinScene mode="egg" day={day}/><div className="heroFade"/></section>
+   <section className="storyPanel">
+     <div className="eyebrow"><span/>INCUBATION · DAY {day} OF 4<span/></div>
+     <h1>{day===4?'It knows you’re here.':'Something is growing.'}</h1>
+     <p>{day===1?'Warmth gathers beneath the shell.':day===2?'A faint rhythm answers your touch.':day===3?'The shell trembles when you come close.':'Light leaks through the fractures.'}</p>
+     <button className="primaryCta" onClick={()=>day<4?setDay(d=>d+1):setStage('hatch')}>{day===4?'BEGIN HATCHING':'CHECK IN'}</button>
+     <button className="devLink" onClick={()=>setDay(4)}>DEV · ADVANCE TO DAY 4</button>
+   </section>
+ </main>;
+
+ if(stage==='hatch') return <main className="screen cinematic hatchStage">
+   <Brand/>
+   <section className="hatchCanvas"><KaijukinScene mode="hatch"/><div className="hatchAura"/><div className="shellShard s1"/><div className="shellShard s2"/></section>
+   <section className="revealCopy">
+    <span className="eyebrow solo">BIRTH · DAY ONE</span>
+    <h1>Hello, little one.</h1>
+    <p>For the first time, it looks back.</p>
+    <button className="primaryCta" onClick={()=>setStage('name')}>MEET YOUR KAIJUKIN</button>
+   </section>
+ </main>;
+
+ if(stage==='name') return <main className="screen cinematic namingStage">
+   <Brand/>
+   <section className="nameHero"><KaijukinScene mode="portrait"/><div className="heroFade"/></section>
+   <section className="nameSheet">
+    <span className="eyebrow solo">FIRST BOND</span>
+    <h1>Give it a name.</h1>
+    <p>This is the first thing it will learn from you.</p>
+    <label className="nameField"><span>NAME</span><input value={name} onChange={e=>setName(e.target.value)} maxLength={16} autoComplete="off" spellCheck={false}/></label>
+    <button className="primaryCta full" disabled={!name.trim()} onClick={()=>setStage('home')}>ENTER THE NEST</button>
+   </section>
+ </main>;
+
+ return <main className="screen nestStage">
+   <header className="premiumHud">
+    <div className="identityBlock"><MokiIcon/><div><strong>{name.toUpperCase()}</strong><small>GROWTH I · LEVEL 1</small></div></div>
+    <div className="currency"><b>◆ {kin}</b><small>KIN</small></div>
+   </header>
+   <section className="nestWorld"><KaijukinScene mode="nest"/><div className="nestGradient"/>
+     <div className="presence"><span className="presenceDot"/><b>CURIOUS</b><small>{name} notices you watching.</small></div>
+   </section>
+   <section className="premiumActions">
+    <button><Icon type="chat"/><b>TALK</b><small>Bond</small></button>
+    <button><Icon type="feed"/><b>FEED</b><small>Care</small></button>
+    <button><Icon type="play"/><b>PLAY</b><small>Interact</small></button>
+    <button><Icon type="explore"/><b>EXPLORE</b><small>Discover</small></button>
+   </section>
+   <footer className="premiumNav">
+    <button className="active"><span>⌂</span><small>NEST</small></button>
+    <button><span>▱</span><small>JOURNAL</small></button>
+    <div className="xpMedallion"><b>{xp}</b><small>XP</small></div>
+    <button><span>◇</span><small>COLLECT</small></button>
+    <button><span>···</span><small>MORE</small></button>
+   </footer>
+ </main>
+}
+
+function Brand(){return <div className="brand premiumBrand"><MokiIcon/><b>KAIJUKIN</b></div>}
+function MokiIcon(){return <svg viewBox="0 0 100 80" aria-hidden="true"><path d="M18 65C7 62 7 45 19 42c1-19 12-31 27-34 10-8 27-9 35-4 7 5 3 21-5 31 8 3 13 10 13 19 9 2 10 17-1 20-12 3-19-2-22-5-9 6-23 7-34 1-4 4-8 5-14 5Z"/><ellipse cx="39" cy="46" rx="5" ry="10"/><ellipse cx="61" cy="46" rx="5" ry="10"/></svg>}
+function Icon({type}:{type:string}){const paths:{[k:string]:string}={chat:'M4 5h16v11H9l-5 4V5Z',feed:'M12 3c4 4 5 8 2 12-2 3-6 4-9 1 2-1 4-3 5-6 1-3 1-5 2-7Z',play:'M12 4a8 8 0 1 0 0 16 8 8 0 0 0 0-16Zm-1 4 5 4-5 4V8Z',explore:'M12 3l3 6 6 3-6 3-3 6-3-6-6-3 6-3 3-6Z'};return <svg className="actionIcon" viewBox="0 0 24 24"><path d={paths[type]}/></svg>}
